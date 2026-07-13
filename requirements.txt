@@ -1,0 +1,14 @@
+# Google API
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# RAG & AI Framework
+llama-index
+openai
+qdrant-client
+
+# UI & Core
+streamlit
+python-dotenv
+pytest

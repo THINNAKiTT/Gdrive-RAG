@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+config/secure_gcp_credentials.json
