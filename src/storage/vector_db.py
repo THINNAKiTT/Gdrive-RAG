@@ -20,7 +20,7 @@ class VectorDBManager:
         
         nodes = self.node_parser.get_nodes_from_documents(documents)
 
-        print(f" Chunked {len(nodes)} chunks")
+        print(f"Chunked {len(nodes)} chunks")
 
         index = VectorStoreIndex(
             nodes=nodes,
