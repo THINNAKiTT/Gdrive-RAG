@@ -6,6 +6,7 @@ from src.rag.orchestrator import RAGOrchestrator
 from src.ingestion.drive_client import GoogleDriveClient
 from src.ingestion.document_parser import DocumentParser
 from src.storage.vector_db import VectorDBManager
+from src.storage.metadata_store import DynamicSyncManager
 
 def format_citations(source_nodes):
     """Extrating metadata from Chunks used to answer."""
@@ -21,44 +22,28 @@ def format_citations(source_nodes):
             
     return citations
 
-def init_knowledge_base():
+def sync_knowledge_base():
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
-    db_manager = VectorDBManager()
+    orchestrator = RAGOrchestrator()
+    client = GoogleDriveClient()
 
     if folder_id is None:
         print("Environment variable GOOGLE_DRIVE_FOLDER_ID is not set.")
         return
-    
-    db_files = os.listdir(db_manager.db_path) if os.path.exists(db_manager.db_path) else []
-    has_vector_dir = any(os.path.isdir(os.path.join(db_manager.db_path, f)) for f in db_files)
-    
-    if not has_vector_dir:
-        print("Fetching Document from Google Drive...")
-        
-        client = GoogleDriveClient()
-        files = client.list_files_in_folder(folder_id)
-        
-        parsed_documents = []
 
-        for file in files:
-            if "application/pdf" in file['mimeType']:
-                print(f"Downloading and extracting : {file['name']}")
-                file_bytes = client.download_files(file['id'])
-                doc = DocumentParser.parse_pdf(file_bytes, file['name'], file['id'])
-                parsed_documents.append(doc)
-                
-        if parsed_documents:
-            db_manager.index_document(parsed_documents)
-            print("The vector database has been successfully created.")
-        else:
-            print("PDF not found")
+    files = client.list_files_in_folder(folder_id)
+    from src.storage.metadata_store import DynamicSyncManager
+
+
+    sync_engine = DynamicSyncManager(orchestrator.index, orchestrator.db_manager)
+    sync_engine.sync_with_drive(files, client)
 
 def main():
     print("Loading the RAG Engine system...")
     orchestrator = RAGOrchestrator()
 
     print("Checking status of database...")
-    init_knowledge_base()
+    sync_knowledge_base()
 
     query_engine = orchestrator.get_query_engine()
 

@@ -22,7 +22,7 @@ class GoogleDriveClient:
         query = f"'{folder_id}' in parents and trashed = false"
         results = self.service.files().list(
             q=query,
-            fields="nextPageToken, files(id, name, mimeType, modifiedTime)"
+            fields="nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink)"
         ).execute()
 
         return results.get('files', [])
