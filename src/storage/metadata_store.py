@@ -40,7 +40,16 @@ class DynamicSyncManager:
             is_new = file_id not in local_files
             is_modified = file_id in local_files and local_files[file_id] != drive_mod_time
 
-            if (is_new or is_modified) and "application/pdf" in file["mimeType"]:
+            SUPPORTED_MIMETYPES = [
+                "application/pdf",
+                "application/epub+zip",
+                "application/x-cbz",
+                "image/png",
+                "image/jpeg",
+                "text/plain"
+            ]
+
+            if (is_new or is_modified) and file.get("mimeType") in SUPPORTED_MIMETYPES:
                 if is_modified:
                     print(f"File modified. Updating tracking vectors for: {file['name']}")
                     self.db_manager.chroma_collection.delete(where={"file_id": file_id})

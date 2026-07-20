@@ -1,16 +1,16 @@
 import io
 from llama_index.core import Document
-import pypdf #It will be changed to LlamaParse or PyMuPDF in the future.
+import fitz
 
 class DocumentParser:
     @staticmethod
-    def parse_pdf(file_bytes: bytes, file_name: str, file_id: str, web_view_link: str) -> list[Document]:
-        pdf_file = io.BytesIO(file_bytes)
-        reader = pypdf.PdfReader(pdf_file)
-
+    def parse_pdf(file_bytes: bytes, file_name: str, file_id: str, web_view_link: str, file_type: str = "pdf") -> list[Document]:
+        reader = fitz.open(stream=file_bytes, filetype=file_type)
         documents_per_page = []
-        for page_num, page in enumerate(reader.pages):
-            text = page.extract_text()
+        
+        for page_num in range(len(reader)):
+            page = reader.load_page(page_num)
+            text = page.get_text()
             if text:
                 doc = Document(
                     text=text,

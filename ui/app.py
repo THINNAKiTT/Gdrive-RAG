@@ -12,7 +12,7 @@ st.set_page_config(
     page_title="GDrive-RAG-Chatbot",
     layout="centered",
 )
-st.title("RAG-Chatbot")
+st.title("GDrive-RAG-Chat")
 st.caption("Synchronized with Google Drive")
 
 @st.cache_resource
@@ -39,12 +39,13 @@ for message in st.session_state.messages:
                     st.caption(citation)
 
 if user_query := st.chat_input("Ask a question about your documents..."):
-    sync_knowledge_base()
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.markdown(user_query)
 
     with st.chat_message("assistant"):
+        with st.spinner("Syncing with the database."):
+            sync_knowledge_base()   
         with st.spinner("Searching documents and generating response..."):
             response = query_engine.query(user_query)
             answer_text = getattr(response, "response", str(response))
