@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from src.utils.logger import get_logger
+logger = get_logger("GDrive-RAG")
+
 class GoogleDriveClient:
     def __init__(self):
         self.creds_path = os.getenv("GCP_CREDENTIALS_PATH", "config/secure_gcp_credents.json")
@@ -28,12 +31,15 @@ class GoogleDriveClient:
         return results.get('files', [])
     
     def download_files(self, file_id: str) -> bytes:
-        request = self.service.files().get_media(fileId=file_id)
-        file_stream = io.BytesIO()
-        downloader = MediaIoBaseDownload(file_stream, request)
+        try:
+            request = self.service.files().get_media(fileId=file_id)
+            file_stream = io.BytesIO()
+            downloader = MediaIoBaseDownload(file_stream, request)
+            done = False
 
-        done = False
-        while not done:
-            status, done = downloader.next_chunk()
-
-        return file_stream.getvalue()
+            while not done:
+                status, done = downloader.next_chunk()
+            return file_stream.getvalue()
+        except Exception as e:
+            logger.error(f"Error downloading file {file_id}: {e}")
+        return b""

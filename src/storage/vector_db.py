@@ -2,7 +2,10 @@ import os
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.chroma import ChromaVectorStore
+from src.utils.logger import get_logger
 import chromadb
+
+logger = get_logger("VectorDatabase")
 
 class VectorDBManager:
     def __init__(self, db_path: str = "./chroma_db"):
@@ -20,13 +23,13 @@ class VectorDBManager:
         
         nodes = self.node_parser.get_nodes_from_documents(documents)
 
-        print(f"Chunked {len(nodes)} chunks")
+        logger.info(f"Chunked {len(nodes)} chunks")
 
         index = VectorStoreIndex(
             nodes=nodes,
             storage_context=self.storage_context
         )
-        print("Data successfully saved to Vector DB.")
+        logger.info("Data successfully saved to Vector DB.")
         return index
     
     def load_index(self) -> VectorStoreIndex:

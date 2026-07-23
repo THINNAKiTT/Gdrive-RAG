@@ -9,10 +9,6 @@ from llama_index.embeddings.ollama import OllamaEmbedding
 from src.storage.vector_db import VectorDBManager
 from src.rag.prompt_templates import STRICT_RAG_PROMPT
 
-# Load .env
-# current_dir = os.path.dirname(os.path.abspath(__file__))
-# project_root = os.path.abspath(os.path.join(current_dir, "../../"))
-
 load_dotenv()
 
 class RAGOrchestrator:
