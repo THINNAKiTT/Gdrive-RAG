@@ -5,6 +5,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.rag.orchestrator import RAGOrchestrator
 from src.ingestion.drive_client import GoogleDriveClient
 from src.storage.metadata_store import DynamicSyncManager
+from src.utils.logger import get_logger
+
+logger = get_logger("GDrive-RAG")
 
 def format_citations(source_nodes):
     """Extrating metadata from Chunks used to answer."""
@@ -26,7 +29,7 @@ def sync_knowledge_base():
     client = GoogleDriveClient()
 
     if folder_id is None:
-        print("Environment variable GOOGLE_DRIVE_FOLDER_ID is not set.")
+        logger.info("Environment variable GOOGLE_DRIVE_FOLDER_ID is not set.")
         return
 
     files = client.list_files_in_folder(folder_id)
@@ -35,16 +38,16 @@ def sync_knowledge_base():
     sync_engine.sync_with_drive(files, client)
 
 def main():
-    print("Loading the RAG Engine system...")
+    logger.info("Loading the RAG Engine system...")
     orchestrator = RAGOrchestrator()
 
-    print("Checking status of database...")
+    logger.info("Checking status of database...")
     sync_knowledge_base()
 
     query_engine = orchestrator.get_query_engine()
 
-    print("\n The system is now Ready (type 'exit' to exit the program)")
-    print("="*60)
+    logger.info("\n The system is now Ready (type 'exit' to exit the program)")
+    logger.info("="*60)
 
     while True:
         query = input("\n User: ")
@@ -54,19 +57,19 @@ def main():
         if not query.strip():
             continue
 
-        print("Searching for documents and processing responses...")
+        logger.info("Searching for documents and processing responses...")
 
         response = query_engine.query(query)
 
         answer_text = getattr(response, "response", response)
-        print(f"\nAI : {answer_text}")
+        logger.info(f"\nAI : {answer_text}")
 
         citations = format_citations(response.source_nodes)
         if citations:
-            print("\n Source")
+            logger.info("\n Source")
             for citation in citations:
-                print(f"   {citation}")
-        print("-" * 60)
+                logger.info(f"   {citation}")
+        logger.info("-" * 60)
 
 if __name__ == "__main__":
     main()

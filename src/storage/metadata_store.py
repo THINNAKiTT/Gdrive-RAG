@@ -1,4 +1,7 @@
 from llama_index.core import VectorStoreIndex
+from src.utils.logger import get_logger
+
+logger = get_logger("MetadataSync")
 
 class DynamicSyncManager:
     def __init__(self, index: VectorStoreIndex, db_manager):
@@ -26,7 +29,7 @@ class DynamicSyncManager:
         # Action A: Clean up 
         for local_id in list(local_files.keys()):
             if local_id not in active_drive_ids:
-                print(f"File removed from Drive. Deleting vectors for ID: {local_id}")
+                logger.info(f"File removed from Drive. Deleting vectors for ID: {local_id}")
                 self.db_manager.chroma_collection.delete(where={"file_id": local_id})
 
         # Action B: Process new or modified files
@@ -48,18 +51,16 @@ class DynamicSyncManager:
 
             if (is_new or is_modified) and file.get("mimeType") in SUPPORTED_MIMETYPES:
                 if is_modified:
-                    print(f"File modified. Updating tracking vectors for: {file['name']}")
+                    logger.info(f"File modified. Updating tracking vectors for: {file['name']}")
                     self.db_manager.chroma_collection.delete(where={"file_id": file_id})
                 else:
-                    print(f"New file discovered. Syncing: {file['name']}")
+                    logger.info(f"New file discovered. Syncing: {file['name']}")
 
                 file_bytes = drive_client.download_files(file_id)
                 docs = DocumentParser.parse_pdf(file_bytes, file["name"], file_id, file["webViewLink"])
                 
                 for doc in docs:
                     doc.metadata["modified_time"] = drive_mod_time
-                
-                for doc in docs:
                     self.index.insert(doc)
         
-        print("Dynamic synchronization cycle completed successfully.")
+        logger.info("Dynamic synchronization cycle completed successfully.")

@@ -67,7 +67,7 @@ if user_query := st.chat_input("Ask a question about your documents..."):
             if citations:
                 with st.expander("References"):
                     for citation in citations:
-                        st.caption(citation)
+                        st.markdown(citation)
 
             st.session_state.messages.append({
                 "role": "assistant",

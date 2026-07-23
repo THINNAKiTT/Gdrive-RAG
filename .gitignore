@@ -5,3 +5,4 @@ __pycache__/
 config/secure_gcp_credentials.json
 
 chroma_db
+logs
