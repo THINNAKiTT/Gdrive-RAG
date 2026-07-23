@@ -4,8 +4,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.rag.orchestrator import RAGOrchestrator
 from src.ingestion.drive_client import GoogleDriveClient
-from src.ingestion.document_parser import DocumentParser
-from src.storage.vector_db import VectorDBManager
 from src.storage.metadata_store import DynamicSyncManager
 
 def format_citations(source_nodes):
@@ -32,8 +30,6 @@ def sync_knowledge_base():
         return
 
     files = client.list_files_in_folder(folder_id)
-    from src.storage.metadata_store import DynamicSyncManager
-
 
     sync_engine = DynamicSyncManager(orchestrator.index, orchestrator.db_manager)
     sync_engine.sync_with_drive(files, client)

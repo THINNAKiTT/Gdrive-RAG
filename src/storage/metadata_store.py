@@ -9,14 +9,13 @@ class DynamicSyncManager:
         """Compares local index metadata with active Google Drive state."""
         from src.ingestion.document_parser import DocumentParser
 
-        # 1. Fetch current vector storage state
+        # Fetch current vector storage state
         try:
             stored_data = self.db_manager.chroma_collection.get(include=["metadatas"])
             indexed_meta = stored_data.get("metadatas", [])
         except Exception:
             indexed_meta = []
 
-        # Create a fast lookup map for local files: {file_id: modified_time}
         local_files = {}
         for meta in indexed_meta:
             if "file_id" in meta and "modified_time" in meta:
@@ -28,7 +27,6 @@ class DynamicSyncManager:
         for local_id in list(local_files.keys()):
             if local_id not in active_drive_ids:
                 print(f"File removed from Drive. Deleting vectors for ID: {local_id}")
-                # Remove vectors matching metadata filter
                 self.db_manager.chroma_collection.delete(where={"file_id": local_id})
 
         # Action B: Process new or modified files
@@ -36,7 +34,6 @@ class DynamicSyncManager:
             file_id = file["id"]
             drive_mod_time = file["modifiedTime"]
             
-            # Check if file is new or was updated since last ingestion
             is_new = file_id not in local_files
             is_modified = file_id in local_files and local_files[file_id] != drive_mod_time
 
@@ -56,15 +53,12 @@ class DynamicSyncManager:
                 else:
                     print(f"New file discovered. Syncing: {file['name']}")
 
-                # Download, Parse and Add to index seamlessly
                 file_bytes = drive_client.download_files(file_id)
                 docs = DocumentParser.parse_pdf(file_bytes, file["name"], file_id, file["webViewLink"])
                 
-                # Inject explicit modified time to metadata before ingestion
                 for doc in docs:
                     doc.metadata["modified_time"] = drive_mod_time
                 
-                # Insert directly into the active local index layout
                 for doc in docs:
                     self.index.insert(doc)
         
