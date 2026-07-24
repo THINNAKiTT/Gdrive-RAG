@@ -20,3 +20,15 @@ dependencies = [
     "qdrant-client>=1.18.0",
     "streamlit>=1.59.2",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: fast, fully-isolated tests (no network, no external services)",
+    "integration: tests that hit real external services (Google Drive, Ollama) and require .env",
+]
+addopts = "-ra --strict-markers"
+

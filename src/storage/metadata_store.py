@@ -62,5 +62,6 @@ class DynamicSyncManager:
                 for doc in docs:
                     doc.metadata["modified_time"] = drive_mod_time
                     self.index.insert(doc)
+                logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
         
         logger.info("Dynamic synchronization cycle completed successfully.")
