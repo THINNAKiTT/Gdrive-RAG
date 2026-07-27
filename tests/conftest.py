@@ -56,8 +56,15 @@ def sample_drive_files():
 def mock_drive_service(sample_drive_files):
     """
     A MagicMock standing in for the `googleapiclient.discovery.build(...)`
-    service object, wired for the two calls GoogleDriveClient makes:
-    `.files().list(...).execute()` and `.files().get_media(...)`.
+    service object, wired for the calls GoogleDriveClient makes:
+    `.files().list(...).execute()`, `.files().get_media(...)`,
+    `.changes().getStartPageToken().execute()`, and
+    `.changes().list(...).execute()`.
+
+    Changes API responses default to "no changes, single page" so
+    tests that don't care about the Changes API still get a sane
+    default; tests that do care override
+    `service.changes().list.return_value.execute.side_effect`.
     """
     service = MagicMock()
     service.files.return_value.list.return_value.execute.return_value = {
@@ -66,6 +73,14 @@ def mock_drive_service(sample_drive_files):
     # get_media() result is only used by MediaIoBaseDownload, which we
     # patch separately in the drive_client tests rather than here.
     service.files.return_value.get_media.return_value = MagicMock()
+
+    service.changes.return_value.getStartPageToken.return_value.execute.return_value = {
+        "startPageToken": "start-token-000"
+    }
+    service.changes.return_value.list.return_value.execute.return_value = {
+        "newStartPageToken": "start-token-000",
+        "changes": [],
+    }
     return service
 
 

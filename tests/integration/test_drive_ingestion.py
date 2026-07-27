@@ -27,7 +27,6 @@ requires_real_drive_folder = pytest.mark.skipif(
     not folder_id, reason="GOOGLE_DRIVE_FOLDER_ID not set in environment"
 )
 
-
 @requires_real_drive_folder
 def test_can_list_files_in_configured_folder():
     client = GoogleDriveClient()

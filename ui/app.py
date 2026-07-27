@@ -5,8 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
 
-from src.main import sync_knowledge_base
 from src.rag.orchestrator import RAGOrchestrator
+from src.storage.sync_lock import SyncLock
 
 st.set_page_config(
     page_title="GDrive-RAG-Chatbot",
@@ -19,6 +19,8 @@ st.caption("Synchronized with Google Drive")
 def setup_rag_sys():
     orchestrator = RAGOrchestrator()
     return orchestrator.get_query_engine()
+
+sync_lock = SyncLock()
 
 try:
     with st.spinner("Initializing database and loading RAG..."):
@@ -44,8 +46,16 @@ if user_query := st.chat_input("Ask a question about your documents..."):
         st.markdown(user_query)
 
     with st.chat_message("assistant"):
-        with st.spinner("Syncing with the database."):
-            sync_knowledge_base()   
+        if sync_lock.is_locked():
+            with st.spinner("Waiting for an in-progress sync to finish..."):
+                caught_up = sync_lock.wait_until_free(timeout_seconds=30.0)
+            if not caught_up:
+                st.warning(
+                    "Sync is taking longer than expected -- answering with "
+                    "the current index, which may not include the very "
+                    "latest Drive changes."
+                )
+        
         with st.spinner("Searching documents and generating response..."):
             response = query_engine.query(user_query)
             answer_text = getattr(response, "response", str(response))
