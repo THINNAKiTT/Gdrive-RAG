@@ -8,7 +8,7 @@ class DynamicSyncManager:
         self.index = index
         self.db_manager = db_manager
 
-    def sync_with_drive(self, current_drive_files: list, drive_client):
+    def sync_with_drive(self, current_drive_files: list, drive_client, on_progress=None):
         """Compares local index metadata with active Google Drive state."""
         from src.ingestion.document_parser import DocumentParser
 
@@ -31,6 +31,8 @@ class DynamicSyncManager:
             if local_id not in active_drive_ids:
                 logger.info(f"File removed from Drive. Deleting vectors for ID: {local_id}")
                 self.db_manager.chroma_collection.delete(where={"file_id": local_id})
+                if on_progress:
+                    on_progress()
 
         # Action B: Process new or modified files
         for file in current_drive_files:
@@ -63,5 +65,51 @@ class DynamicSyncManager:
                     doc.metadata["modified_time"] = drive_mod_time
                     self.index.insert(doc)
                 logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+                if on_progress:
+                    on_progress()
         
         logger.info("Dynamic synchronization cycle completed successfully.")
+
+    def sync_from_changes(self, changed_files: list, removed_file_ids: set, drive_client, on_progress=None):
+        from src.ingestion.document_parser import DocumentParser
+
+        SUPPORTED_MIMETYPES = [
+            "application/pdf",
+            "application/epub+zip",
+            "application/x-cbz",
+            "image/png",
+            "image/jpeg",
+            "text/plain",
+        ]
+
+        for file_id in removed_file_ids:
+            logger.info(f"File removed/trashed on Drive. Deleting vectors for ID: {file_id}")
+            self.db_manager.chroma_collection.delete(where={"file_id": file_id})
+            if on_progress:
+                on_progress()
+
+        for file in changed_files:
+            if file.get("mimeType") not in SUPPORTED_MIMETYPES:
+                continue
+
+            file_id = file["id"]
+            self.db_manager.chroma_collection.delete(where={"file_id": file_id})
+
+            logger.info(f"Syncing changed file: {file['name']}")
+            file_bytes = drive_client.download_files(file_id)
+            docs = DocumentParser.parse_pdf(
+                file_bytes, file["name"], file_id, file["webViewLink"]
+            )
+
+            for doc in docs:
+                doc.metadata["modified_time"] = file["modifiedTime"]
+                self.index.insert(doc)
+            logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+            if on_progress:
+                on_progress()
+
+            if changed_files or removed_file_ids:
+                logger.info(
+                    f"Incremental sync completed: {len(changed_files)} changed, "
+                    f"{len(removed_file_ids)} removed."
+            )   

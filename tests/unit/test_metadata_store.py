@@ -173,3 +173,159 @@ def test_chroma_get_failure_falls_back_to_empty_local_state(mock_fitz_document):
     sync.sync_with_drive(drive_files, make_drive_client())
 
     index.insert.assert_called_once()
+
+
+def test_sync_with_drive_calls_on_progress_per_file(mock_fitz_document):
+    mock_fitz_document.set_pages(["Content."])
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+    progress_calls = []
+
+    drive_files = [{
+        "id": "file-001",
+        "name": "handbook.pdf",
+        "mimeType": "application/pdf",
+        "modifiedTime": "2026-01-10T12:00:00.000Z",
+        "webViewLink": "https://drive.google.com/file/d/file-001/view",
+    }]
+
+    sync.sync_with_drive(drive_files, make_drive_client(), on_progress=lambda: progress_calls.append(1))
+
+    assert len(progress_calls) == 1
+
+
+def test_sync_with_drive_without_on_progress_does_not_error(mock_fitz_document):
+    """on_progress is optional -- omitting it (the pre-existing call
+    sites in tests above) must keep working exactly as before."""
+    mock_fitz_document.set_pages(["Content."])
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    drive_files = [{
+        "id": "file-001",
+        "name": "handbook.pdf",
+        "mimeType": "application/pdf",
+        "modifiedTime": "2026-01-10T12:00:00.000Z",
+        "webViewLink": "https://drive.google.com/file/d/file-001/view",
+    }]
+
+    sync.sync_with_drive(drive_files, make_drive_client())  # should not raise
+
+
+# ---------------------------------------------------------------------------
+# sync_from_changes (Drive Changes API incremental path)
+# ---------------------------------------------------------------------------
+
+
+def test_sync_from_changes_ingests_changed_file(mock_fitz_document):
+    mock_fitz_document.set_pages(["New content."])
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    changed_files = [{
+        "id": "file-001",
+        "name": "handbook.pdf",
+        "mimeType": "application/pdf",
+        "modifiedTime": "2026-01-12T00:00:00.000Z",
+        "webViewLink": "https://drive.google.com/file/d/file-001/view",
+    }]
+
+    sync.sync_from_changes(changed_files, removed_file_ids=set(), drive_client=make_drive_client())
+
+    index.insert.assert_called_once()
+    inserted_doc = index.insert.call_args[0][0]
+    assert inserted_doc.metadata["file_id"] == "file-001"
+    assert inserted_doc.metadata["modified_time"] == "2026-01-12T00:00:00.000Z"
+
+
+def test_sync_from_changes_deletes_removed_files(mock_fitz_document):
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    sync.sync_from_changes(changed_files=[], removed_file_ids={"file-gone"}, drive_client=make_drive_client())
+
+    db_manager.chroma_collection.delete.assert_called_once_with(where={"file_id": "file-gone"})
+    index.insert.assert_not_called()
+
+
+def test_sync_from_changes_clears_old_chunks_before_reinserting_modified_file(mock_fitz_document):
+    """A modified file must have its old chunks deleted before the new
+    ones are inserted, or the index ends up with stale + fresh chunks
+    for the same file."""
+    mock_fitz_document.set_pages(["Updated content."])
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    changed_files = [{
+        "id": "file-001",
+        "name": "handbook.pdf",
+        "mimeType": "application/pdf",
+        "modifiedTime": "2026-01-12T00:00:00.000Z",
+        "webViewLink": "https://drive.google.com/file/d/file-001/view",
+    }]
+
+    sync.sync_from_changes(changed_files, removed_file_ids=set(), drive_client=make_drive_client())
+
+    db_manager.chroma_collection.delete.assert_called_once_with(where={"file_id": "file-001"})
+    index.insert.assert_called_once()
+
+
+def test_sync_from_changes_skips_unsupported_mimetype(mock_fitz_document):
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    changed_files = [{
+        "id": "file-005",
+        "name": "spreadsheet.xlsx",
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "modifiedTime": "2026-01-12T00:00:00.000Z",
+        "webViewLink": "",
+    }]
+
+    sync.sync_from_changes(changed_files, removed_file_ids=set(), drive_client=make_drive_client())
+
+    index.insert.assert_not_called()
+    db_manager.chroma_collection.delete.assert_not_called()
+
+
+def test_sync_from_changes_no_changes_is_a_no_op(mock_fitz_document):
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    sync.sync_from_changes(changed_files=[], removed_file_ids=set(), drive_client=make_drive_client())
+
+    index.insert.assert_not_called()
+    db_manager.chroma_collection.delete.assert_not_called()
+
+
+def test_sync_from_changes_calls_on_progress_for_each_change(mock_fitz_document):
+    mock_fitz_document.set_pages(["Content."])
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+    progress_calls = []
+
+    changed_files = [{
+        "id": "file-001",
+        "name": "handbook.pdf",
+        "mimeType": "application/pdf",
+        "modifiedTime": "2026-01-12T00:00:00.000Z",
+        "webViewLink": "",
+    }]
+
+    sync.sync_from_changes(
+        changed_files,
+        removed_file_ids={"file-gone"},
+        drive_client=make_drive_client(),
+        on_progress=lambda: progress_calls.append(1),
+    )
+
+    # one call for the removed file, one for the changed file
+    assert len(progress_calls) == 2
