@@ -52,11 +52,12 @@ def test_can_download_and_parse_first_pdf_in_folder():
 
     # NOTE: web_view_link is a required positional/keyword arg -- the
     # original manual script omitted it and crashed with a TypeError.
-    docs = DocumentParser.parse_pdf(
+    docs = DocumentParser.parse_file(
         file_bytes=file_bytes,
         file_name=target["name"],
         file_id=target["id"],
         web_view_link=target["webViewLink"],
+        mimetype=target["mimeType"],
     )
 
     assert isinstance(docs, list)

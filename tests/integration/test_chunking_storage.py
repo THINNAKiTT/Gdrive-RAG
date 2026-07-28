@@ -62,11 +62,12 @@ def test_end_to_end_ingest_chunk_store_and_query(tmp_path):
         # appended the returned *list* into another list, producing a
         # nested list that broke SentenceSplitter downstream. Fixed here:
         # flatten with extend(), and pass web_view_link.
-        page_docs = DocumentParser.parse_pdf(
+        page_docs = DocumentParser.parse_file(
             file_bytes=file_bytes,
             file_name=f["name"],
             file_id=f["id"],
             web_view_link=f["webViewLink"],
+            mimetype=f["mimeType"],
         )
         # Stamp modified_time here (index_document() itself does not --
         # see the docstring on VectorDBManager.index_document), so a

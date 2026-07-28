@@ -5,11 +5,12 @@ These tests pin down the sync/diff logic against a fake Chroma
 collection and a fake drive client, with document_parser's fitz
 dependency mocked out.
 """
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.storage.metadata_store import DynamicSyncManager
+from src.ingestion.document_parser import DocumentParser
 
 pytestmark = pytest.mark.unit
 
@@ -329,3 +330,90 @@ def test_sync_from_changes_calls_on_progress_for_each_change(mock_fitz_document)
 
     # one call for the removed file, one for the changed file
     assert len(progress_calls) == 2
+    
+def test_sync_with_drive_skips_file_that_fails_to_parse_and_continues(mock_fitz_document):
+    """
+    If DocumentParser.parse_file() raises (unsupported mimetype that
+    slipped through, or OCR unavailable), sync_with_drive must log and
+    skip that file rather than letting the exception abort the whole
+    sync cycle -- otherwise one bad file blocks every file after it.
+    """
+    mock_fitz_document.set_pages(["Good file content."])
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    drive_files = [
+        {
+            "id": "file-broken",
+            "name": "broken.pdf",
+            "mimeType": "application/pdf",
+            "modifiedTime": "2026-01-10T12:00:00.000Z",
+            "webViewLink": "",
+        },
+        {
+            "id": "file-good",
+            "name": "good.pdf",
+            "mimeType": "application/pdf",
+            "modifiedTime": "2026-01-10T12:00:00.000Z",
+            "webViewLink": "",
+        },
+    ]
+
+    original_parse_file = DocumentParser.parse_file
+
+    def flaky_parse_file(file_bytes, file_name, file_id, web_view_link, mimetype):
+        if file_id == "file-broken":
+            raise RuntimeError("OCR unavailable")
+        return original_parse_file(file_bytes, file_name, file_id, web_view_link, mimetype)
+
+    with patch(
+        "src.storage.metadata_store.DocumentParser.parse_file",
+        side_effect=flaky_parse_file,
+    ):
+        sync.sync_with_drive(drive_files, make_drive_client())
+
+    inserted_file_ids = [call.args[0].metadata["file_id"] for call in index.insert.call_args_list]
+    assert "file-broken" not in inserted_file_ids
+    assert "file-good" in inserted_file_ids
+
+
+def test_sync_from_changes_skips_file_that_fails_to_parse_and_continues(mock_fitz_document):
+    mock_fitz_document.set_pages(["Good file content."])
+    index = MagicMock()
+    db_manager = make_db_manager(existing_metadatas=[])
+    sync = DynamicSyncManager(index=index, db_manager=db_manager)
+
+    changed_files = [
+        {
+            "id": "file-broken",
+            "name": "broken.pdf",
+            "mimeType": "application/pdf",
+            "modifiedTime": "2026-01-12T00:00:00.000Z",
+            "webViewLink": "",
+        },
+        {
+            "id": "file-good",
+            "name": "good.pdf",
+            "mimeType": "application/pdf",
+            "modifiedTime": "2026-01-12T00:00:00.000Z",
+            "webViewLink": "",
+        },
+    ]
+
+    original_parse_file = DocumentParser.parse_file
+
+    def flaky_parse_file(file_bytes, file_name, file_id, web_view_link, mimetype):
+        if file_id == "file-broken":
+            raise ValueError("Unsupported mimetype")
+        return original_parse_file(file_bytes, file_name, file_id, web_view_link, mimetype)
+
+    with patch(
+        "src.storage.metadata_store.DocumentParser.parse_file",
+        side_effect=flaky_parse_file,
+    ):
+        sync.sync_from_changes(changed_files, removed_file_ids=set(), drive_client=make_drive_client())
+
+    inserted_file_ids = [call.args[0].metadata["file_id"] for call in index.insert.call_args_list]
+    assert "file-broken" not in inserted_file_ids
+    assert "file-good" in inserted_file_ids
