@@ -1,5 +1,6 @@
 from llama_index.core import VectorStoreIndex
 from src.utils.logger import get_logger
+from src.ingestion.document_parser import DocumentParser, SUPPORTED_MIMETYPES
 
 logger = get_logger("MetadataSync")
 
@@ -10,7 +11,6 @@ class DynamicSyncManager:
 
     def sync_with_drive(self, current_drive_files: list, drive_client, on_progress=None):
         """Compares local index metadata with active Google Drive state."""
-        from src.ingestion.document_parser import DocumentParser
 
         # Fetch current vector storage state
         try:
@@ -42,15 +42,6 @@ class DynamicSyncManager:
             is_new = file_id not in local_files
             is_modified = file_id in local_files and local_files[file_id] != drive_mod_time
 
-            SUPPORTED_MIMETYPES = [
-                "application/pdf",
-                "application/epub+zip",
-                "application/x-cbz",
-                "image/png",
-                "image/jpeg",
-                "text/plain"
-            ]
-
             if (is_new or is_modified) and file.get("mimeType") in SUPPORTED_MIMETYPES:
                 if is_modified:
                     logger.info(f"File modified. Updating tracking vectors for: {file['name']}")
@@ -59,7 +50,14 @@ class DynamicSyncManager:
                     logger.info(f"New file discovered. Syncing: {file['name']}")
 
                 file_bytes = drive_client.download_files(file_id)
-                docs = DocumentParser.parse_pdf(file_bytes, file["name"], file_id, file["webViewLink"])
+                try:
+                    docs = DocumentParser.parse_file(
+                        file_bytes, file["name"], file_id, file["webViewLink"],
+                        mimetype=file.get("mimeType"),
+                    )
+                except (ValueError, RuntimeError) as e:
+                    logger.warning(f"Skipping file {file['name']}: {e}")
+                    continue
                 
                 for doc in docs:
                     doc.metadata["modified_time"] = drive_mod_time
@@ -71,17 +69,6 @@ class DynamicSyncManager:
         logger.info("Dynamic synchronization cycle completed successfully.")
 
     def sync_from_changes(self, changed_files: list, removed_file_ids: set, drive_client, on_progress=None):
-        from src.ingestion.document_parser import DocumentParser
-
-        SUPPORTED_MIMETYPES = [
-            "application/pdf",
-            "application/epub+zip",
-            "application/x-cbz",
-            "image/png",
-            "image/jpeg",
-            "text/plain",
-        ]
-
         for file_id in removed_file_ids:
             logger.info(f"File removed/trashed on Drive. Deleting vectors for ID: {file_id}")
             self.db_manager.chroma_collection.delete(where={"file_id": file_id})
@@ -97,9 +84,16 @@ class DynamicSyncManager:
 
             logger.info(f"Syncing changed file: {file['name']}")
             file_bytes = drive_client.download_files(file_id)
-            docs = DocumentParser.parse_pdf(
-                file_bytes, file["name"], file_id, file["webViewLink"]
-            )
+            try:
+                docs = DocumentParser.parse_file(
+                    file_bytes, file["name"], file_id, file["webViewLink"],
+                    mimetype=file.get("mimeType"),
+                )
+            except (ValueError, RuntimeError) as e:
+                logger.warning(f"Skipping file '{file['name']}': {e}")
+                if on_progress:
+                    on_progress()
+                continue
 
             for doc in docs:
                 doc.metadata["modified_time"] = file["modifiedTime"]
@@ -108,8 +102,8 @@ class DynamicSyncManager:
             if on_progress:
                 on_progress()
 
-            if changed_files or removed_file_ids:
-                logger.info(
-                    f"Incremental sync completed: {len(changed_files)} changed, "
-                    f"{len(removed_file_ids)} removed."
-            )   
+        if changed_files or removed_file_ids:
+            logger.info(
+                f"Incremental sync completed: {len(changed_files)} changed, "
+                f"{len(removed_file_ids)} removed."
+        )   
