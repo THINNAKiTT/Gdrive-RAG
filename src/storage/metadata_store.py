@@ -1,6 +1,7 @@
 from llama_index.core import VectorStoreIndex
 from src.utils.logger import get_logger
 from src.ingestion.document_parser import DocumentParser, SUPPORTED_MIMETYPES
+from src.utils.resilience import with_resilience, CircuitOpenError
 
 logger = get_logger("MetadataSync")
 
@@ -58,11 +59,18 @@ class DynamicSyncManager:
                 except (ValueError, RuntimeError) as e:
                     logger.warning(f"Skipping file {file['name']}: {e}")
                     continue
-                
-                for doc in docs:
-                    doc.metadata["modified_time"] = drive_mod_time
-                    self.index.insert(doc)
-                logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+
+                insert_with_resilience = with_resilience(self.index.insert)
+                try:
+                    for doc in docs:
+                        doc.metadata["modified_time"] = drive_mod_time
+                        insert_with_resilience(doc)
+                    logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+                except CircuitOpenError as e:
+                    logger.error(
+                    f"Skipping '{file['name']}': Circuit breaker is open. {e}"
+                    )
+                    continue 
                 if on_progress:
                     on_progress()
         
@@ -95,10 +103,17 @@ class DynamicSyncManager:
                     on_progress()
                 continue
 
-            for doc in docs:
-                doc.metadata["modified_time"] = file["modifiedTime"]
-                self.index.insert(doc)
-            logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+            insert_with_resilience = with_resilience(self.index.insert)
+            try:
+                for doc in docs:
+                    doc.metadata["modified_time"] = file["modifiedTime"]
+                    insert_with_resilience(doc)
+                logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+            except CircuitOpenError as e:
+                logger.error(
+                        f"Skipping '{file['name']}': Circuit breaker is open. {e}"
+                    )
+                continue
             if on_progress:
                 on_progress()
 
