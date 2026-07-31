@@ -30,7 +30,10 @@ class DynamicSyncManager:
         # Action A: Clean up 
         for local_id in list(local_files.keys()):
             if local_id not in active_drive_ids:
-                logger.info(f"File removed from Drive. Deleting vectors for ID: {local_id}")
+                logger.info(
+                    f"File removed from Drive. Deleting vectors for ID: {local_id}",
+                    extra={"file_id": local_id, "event": "file_removed"},
+                )
                 self.db_manager.chroma_collection.delete(where={"file_id": local_id})
                 if on_progress:
                     on_progress()
@@ -38,17 +41,25 @@ class DynamicSyncManager:
         # Action B: Process new or modified files
         for file in current_drive_files:
             file_id = file["id"]
+            file_name = file["name"]
             drive_mod_time = file["modifiedTime"]
+            log_context = {"file_id": file_id, "file_name": file_name}
             
             is_new = file_id not in local_files
             is_modified = file_id in local_files and local_files[file_id] != drive_mod_time
 
             if (is_new or is_modified) and file.get("mimeType") in SUPPORTED_MIMETYPES:
                 if is_modified:
-                    logger.info(f"File modified. Updating tracking vectors for: {file['name']}")
+                    logger.info(
+                        f"File modified. Updating tracking vectors for: {file['name']}",
+                        extra={**log_context, "event": "file_modified"},
+                    )
                     self.db_manager.chroma_collection.delete(where={"file_id": file_id})
                 else:
-                    logger.info(f"New file discovered. Syncing: {file['name']}")
+                    logger.info(
+                        f"New file discovered. Syncing: {file['name']}",
+                        extra={**log_context, "event": "file_new"},
+                    )
 
                 file_bytes = drive_client.download_files(file_id)
                 try:
@@ -57,7 +68,10 @@ class DynamicSyncManager:
                         mimetype=file.get("mimeType"),
                     )
                 except (ValueError, RuntimeError) as e:
-                    logger.warning(f"Skipping file {file['name']}: {e}")
+                    logger.warning(
+                        f"Skipping file {file['name']}: {e}",
+                        extra={**log_context, "event": "parse_failed", "error": str(e)},
+                    )
                     continue
 
                 insert_with_resilience = with_resilience(self.index.insert)
@@ -65,10 +79,14 @@ class DynamicSyncManager:
                     for doc in docs:
                         doc.metadata["modified_time"] = drive_mod_time
                         insert_with_resilience(doc)
-                    logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+                    logger.info(
+                        f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}",
+                        extra={**log_context, "event": "ingested", "chunk_count": len(docs)},
+                    )
                 except CircuitOpenError as e:
                     logger.error(
-                    f"Skipping '{file['name']}': Circuit breaker is open. {e}"
+                        f"Skipping '{file['name']}': Circuit breaker is open. {e}",
+                        extra={**log_context, "event": "circuit_open"},
                     )
                     continue 
                 if on_progress:
@@ -78,7 +96,10 @@ class DynamicSyncManager:
 
     def sync_from_changes(self, changed_files: list, removed_file_ids: set, drive_client, on_progress=None):
         for file_id in removed_file_ids:
-            logger.info(f"File removed/trashed on Drive. Deleting vectors for ID: {file_id}")
+            logger.info(
+                f"File removed/trashed on Drive. Deleting vectors for ID: {file_id}",
+                extra={"file_id": file_id, "event": "file_removed"},
+            )
             self.db_manager.chroma_collection.delete(where={"file_id": file_id})
             if on_progress:
                 on_progress()
@@ -88,9 +109,14 @@ class DynamicSyncManager:
                 continue
 
             file_id = file["id"]
+            file_name = file["name"]
+            log_context = {"file_id": file_id, "file_name": file_name}
             self.db_manager.chroma_collection.delete(where={"file_id": file_id})
 
-            logger.info(f"Syncing changed file: {file['name']}")
+            logger.info(
+                f"Syncing changed file: {file['name']}",
+                extra={**log_context, "event": "file_changed"},
+            )
             file_bytes = drive_client.download_files(file_id)
             try:
                 docs = DocumentParser.parse_file(
@@ -98,7 +124,10 @@ class DynamicSyncManager:
                     mimetype=file.get("mimeType"),
                 )
             except (ValueError, RuntimeError) as e:
-                logger.warning(f"Skipping file '{file['name']}': {e}")
+                logger.warning(
+                    f"Skipping file '{file['name']}': {e}",
+                    extra={**log_context, "event": "parse_failed", "error": str(e)},
+                )
                 if on_progress:
                     on_progress()
                 continue
@@ -108,10 +137,14 @@ class DynamicSyncManager:
                 for doc in docs:
                     doc.metadata["modified_time"] = file["modifiedTime"]
                     insert_with_resilience(doc)
-                logger.info(f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}")
+                logger.info(
+                    f"Ingested {len(docs)} chunk(s)/page(s) for file: {file['name']}",
+                    extra={**log_context, "event": "ingested", "chunk_count": len(docs)},
+                )
             except CircuitOpenError as e:
                 logger.error(
-                        f"Skipping '{file['name']}': Circuit breaker is open. {e}"
+                        f"Skipping '{file['name']}': Circuit breaker is open. {e}",
+                        extra={**log_context, "event": "circuit_open"},
                     )
                 continue
             if on_progress:
@@ -120,5 +153,10 @@ class DynamicSyncManager:
         if changed_files or removed_file_ids:
             logger.info(
                 f"Incremental sync completed: {len(changed_files)} changed, "
-                f"{len(removed_file_ids)} removed."
+                f"{len(removed_file_ids)} removed.",
+                extra={
+                    "event": "sync_cycle_complete",
+                    "changed_count": len(changed_files),
+                    "removed_count": len(removed_file_ids),
+                },
         )   
