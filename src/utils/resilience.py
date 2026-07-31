@@ -98,7 +98,6 @@ def retry_with_backoff(func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
         except RETRYABLE_EXCEPTIONS as e:
-            last_exception = e
             if attempt == MAX_RETRY_ATTEMPTS:
                 logger.error(
                     f"AI call failed after {MAX_RETRY_ATTEMPTS} attempts: {e}"
