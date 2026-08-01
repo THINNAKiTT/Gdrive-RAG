@@ -11,3 +11,16 @@ STRICT_RAG_PROMPT = (
     "USER QUERY: {query_str}\n"
     "ANSWER:"
 )
+
+REWRITE_PROMPT_TEMPLATE = """Given the conversation history below, rewrite the "New Question" \
+into a standalone question that includes all necessary context from the \
+history. If the New Question is already standalone (doesn't rely on \
+prior context), return it unchanged. Output ONLY the rewritten \
+question, nothing else -- no explanation, no preamble.
+
+Conversation history:
+{history_block}
+
+New Question: {query}
+
+Standalone question:"""
