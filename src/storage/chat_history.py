@@ -58,12 +58,22 @@ class ChatHistoryStore:
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id)"
             )
-            existing_columns = {
+
+            existing_message_columns = {
                 row["name"]
                 for row in conn.execute("PRAGMA table_info(messages)").fetchall()
             }
-            if "citations" not in existing_columns:
-                conn.execute("ALTER TABLE messages ADD COLUMN citations TEXT")
+            if "citations" not in existing_message_columns:
+                conn.execute("ALTER TABLE messages ADD COLUMN citations TEXT"
+                )
+            existing_session_columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(sessions)").fetchall()
+            }
+            if "pinned" not in existing_session_columns:
+                conn.execute(
+                    "ALTER TABLE sessions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0"
+                )
 
     def create_session(self, title: str = "New Chat") -> str:
         session_id = str(uuid.uuid4())
@@ -85,7 +95,8 @@ class ChatHistoryStore:
     def list_sessions(self) -> list[dict]:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT id, title, created_at, updated_at FROM sessions ORDER BY updated_at DESC"
+                "SELECT id, title, created_at, updated_at, pinned FROM sessions "
+                "ORDER BY pinned DESC, updated_at DESC",
             ).fetchall()
         return [dict(row) for row in rows]
 
@@ -101,6 +112,13 @@ class ChatHistoryStore:
             conn.execute(
                 "UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?",
                 (new_title, now, session_id),
+            )
+
+    def set_pinned(self, session_id: str, pinned: bool):
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE sessions SET pinned = ? WHERE id = ?",
+                (1 if pinned else 0, session_id)
             )
 
     def add_message(
@@ -137,7 +155,7 @@ class ChatHistoryStore:
                 (now, session_id),
             )
 
-    def row_to_message(self, row: dict) -> dict:
+    def _row_to_message(self, row: dict) -> dict:
             message = dict(row)
             raw_citations = message.get("citations")
             if raw_citations:
@@ -156,7 +174,7 @@ class ChatHistoryStore:
                 "WHERE session_id = ? ORDER BY created_at ASC",
                 (session_id,),
             ).fetchall()
-        return [self.row_to_message(row) for row in rows]
+        return [self._row_to_message(row) for row in rows]
 
     def get_recent_turns(self, session_id: str, max_turns: int = 6) -> list[dict]:
         all_messages = self.get_messages(session_id)
