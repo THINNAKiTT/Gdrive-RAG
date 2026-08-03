@@ -18,7 +18,9 @@ dependencies = [
     "pytesseract>=0.3.13",
     "pytest>=9.1.1",
     "python-dotenv>=1.2.2",
+    "sentence-transformers>=5.6.1",
     "streamlit>=1.59.2",
+    "torchvision>=0.28.0",
 ]
 
 [tool.pytest.ini_options]

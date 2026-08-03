@@ -197,6 +197,23 @@ def mock_vector_db_manager(monkeypatch):
     return fake_manager
 
 @pytest.fixture
+def mock_reranker(monkeypatch):
+    """
+    Patches src.rag.orchestrator.Reranker so RAGOrchestrator never
+    constructs a real one -- Reranker.__init__ loads a real
+    CrossEncoder model, which downloads several GB from HuggingFace
+    Hub on first use and hangs test runs that have no network access
+    or no cached model. Any test that touches RAGOrchestrator() must
+    use this fixture.
+    """
+    fake_reranker = MagicMock(name="Reranker")
+    monkeypatch.setattr(
+        "src.rag.orchestrator.Reranker",
+        MagicMock(return_value=fake_reranker),
+    )
+    return fake_reranker
+
+@pytest.fixture
 def mock_query_rewriter_llm(monkeypatch):
     """
     Patches the Ollama class used by QueryRewriter specifically (a
@@ -208,3 +225,4 @@ def mock_query_rewriter_llm(monkeypatch):
     ollama_ctor = MagicMock(name="QueryRewriterOllamaCtor", return_value=fake_llm_instance)
     monkeypatch.setattr("src.rag.query_rewriter.Ollama", ollama_ctor)
     return fake_llm_instance
+
