@@ -1,8 +1,9 @@
 """
 Unit tests for src/rag/orchestrator.py (RAGOrchestrator)
 
-Ollama LLM/embedding classes and VectorDBManager are all mocked so
-these tests never require a running Ollama server or a real ChromaDB.
+Ollama LLM/embedding classes, VectorDBManager, and Reranker are all
+mocked so these tests never require a running Ollama server, a real
+ChromaDB, or downloading the (multi-GB) cross-encoder reranker model.
 """
 import pytest
 from llama_index.core import Settings
@@ -13,7 +14,7 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
-def orchestrator(mock_ollama_llm, mock_ollama_embedding, mock_vector_db_manager):
+def orchestrator(mock_ollama_llm, mock_ollama_embedding, mock_vector_db_manager, mock_reranker):
     return RAGOrchestrator()
 
 
@@ -29,7 +30,9 @@ def test_orchestrator_configures_ollama_llm_with_env_defaults(
     assert Settings.llm is mock_ollama_llm
 
 
-def test_orchestrator_uses_temperature_zero_for_determinism(monkeypatch, mock_vector_db_manager):
+def test_orchestrator_uses_temperature_zero_for_determinism(
+    monkeypatch, mock_vector_db_manager, mock_reranker
+):
     from unittest.mock import MagicMock
     from llama_index.core.llms import MockLLM
     from llama_index.core.embeddings import MockEmbedding
@@ -51,6 +54,10 @@ def test_orchestrator_loads_index_via_db_manager(orchestrator, mock_vector_db_ma
     assert orchestrator.index is mock_vector_db_manager.load_index.return_value
 
 
+def test_orchestrator_creates_reranker_with_top_n_four(orchestrator, mock_reranker):
+    assert orchestrator.reranker is mock_reranker
+
+
 def test_get_query_engine_uses_strict_rag_prompt(orchestrator):
     from src.rag.prompt_templates import STRICT_RAG_PROMPT
 
@@ -60,8 +67,15 @@ def test_get_query_engine_uses_strict_rag_prompt(orchestrator):
     assert call_kwargs["text_qa_template"].template == STRICT_RAG_PROMPT
 
 
-def test_get_query_engine_uses_top_k_four(orchestrator):
+def test_get_query_engine_uses_top_k_fifteen_for_reranker_candidate_pool(orchestrator):
     orchestrator.get_query_engine()
 
     call_kwargs = orchestrator.index.as_query_engine.call_args.kwargs
-    assert call_kwargs["similarity_top_k"] == 4
+    assert call_kwargs["similarity_top_k"] == 15
+
+
+def test_get_query_engine_includes_reranker_as_node_postprocessor(orchestrator, mock_reranker):
+    orchestrator.get_query_engine()
+
+    call_kwargs = orchestrator.index.as_query_engine.call_args.kwargs
+    assert call_kwargs["node_postprocessors"] == [mock_reranker]

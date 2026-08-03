@@ -6,6 +6,7 @@ from llama_index.core import PromptTemplate, Settings
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.ollama import OllamaEmbedding
 
+from src.rag.reranker import Reranker
 from src.storage.vector_db import VectorDBManager
 from src.rag.prompt_templates import STRICT_RAG_PROMPT
 
@@ -39,12 +40,14 @@ class RAGOrchestrator:
 
         self.db_manager = VectorDBManager()
         self.index = self.db_manager.load_index()
+        self.reranker = Reranker(top_n=4)
 
     def get_query_engine(self):
         text_qa_template = PromptTemplate(STRICT_RAG_PROMPT)
 
         query_engine = self.index.as_query_engine(
-            similarity_top_k=4,
+            similarity_top_k=15,
+            node_postprocessors=[self.reranker],
             text_qa_template=text_qa_template
         )
         return query_engine
