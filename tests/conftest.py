@@ -195,3 +195,16 @@ def mock_vector_db_manager(monkeypatch):
         MagicMock(return_value=fake_manager),
     )
     return fake_manager
+
+@pytest.fixture
+def mock_query_rewriter_llm(monkeypatch):
+    """
+    Patches the Ollama class used by QueryRewriter specifically (a
+    separate import from src.rag.orchestrator's Ollama import) with a
+    MagicMock whose .complete() method tests can control via
+    return_value/side_effect.
+    """
+    fake_llm_instance = MagicMock(name="QueryRewriterOllamaInstance")
+    ollama_ctor = MagicMock(name="QueryRewriterOllamaCtor", return_value=fake_llm_instance)
+    monkeypatch.setattr("src.rag.query_rewriter.Ollama", ollama_ctor)
+    return fake_llm_instance
