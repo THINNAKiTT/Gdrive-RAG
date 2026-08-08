@@ -1,28 +1,18 @@
-import os
-
-from llama_index.llms.ollama import Ollama
 from dotenv import load_dotenv
 
 from src.utils.logger import get_logger
 from src.utils.resilience import with_resilience, CircuitOpenError
+from src.rag.providers import get_query_rewrite_llm_provider
 from src.rag.prompt_templates import REWRITE_PROMPT_TEMPLATE
 
 load_dotenv()
 
-logger = get_logger("QueryRewriter")
+logger = get_logger("Reranker")
 
 class QueryRewriter:
     def __init__(self, max_turns: int = 6):
         self.max_turns = max_turns
-        model_name = os.getenv("QUERY_REWRITE_MODEL", "qwen2.5:0.5b")
-        ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-
-        self.llm = Ollama(
-            model=model_name,
-            base_url=ollama_url,
-            temperature=0.0,
-            request_timeout=20.0,
-        )
+        self.llm = get_query_rewrite_llm_provider()
 
     def _build_history_block(self, turns: list[dict]) -> str:
         if not turns:
@@ -53,7 +43,7 @@ class QueryRewriter:
             return query
 
         if not rewritten:
-            logger.warning("Query rewriter returned empty response, using original query.")
+            logger.warning(f"Query rewriter returned empty response, using original query.")
             return query
 
         if rewritten != query:

@@ -1,0 +1,21 @@
+[llm]
+local = "ollama"
+openai = "openai"
+gemini = "gemini"
+claude = "claude"
+
+[embedding]
+local = "ollama"
+openai = "openai"
+gemini = "gemini"
+voyage = "voyage"
+
+[query_rewrite]
+local = "ollama"
+openai = "openai"
+gemini = "gemini"
+claude = "claude"
+
+[reranker]
+local = "reranker-local"
+cohere = "cohere"

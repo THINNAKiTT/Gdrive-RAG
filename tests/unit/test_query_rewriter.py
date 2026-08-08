@@ -190,28 +190,21 @@ def test_rewrite_falls_back_to_original_query_on_whitespace_only_response(rewrit
 # Configuration
 # ---------------------------------------------------------------------------
 
-
-def test_rewriter_uses_query_rewrite_model_env_var(monkeypatch, mock_query_rewriter_llm):
+def test_rewriter_calls_query_rewrite_provider_factory_with_no_args(monkeypatch):
     import src.rag.query_rewriter as query_rewriter_module
+    from llama_index.core.llms import MockLLM
 
-    ctor_spy = MagicMock(return_value=mock_query_rewriter_llm)
-    monkeypatch.setattr(query_rewriter_module, "Ollama", ctor_spy)
-    monkeypatch.setenv("QUERY_REWRITE_MODEL", "custom-tiny-model")
+    factory_spy = MagicMock(return_value=MockLLM())
+    monkeypatch.setattr(
+        query_rewriter_module, "get_query_rewrite_llm_provider", factory_spy
+    )
 
     QueryRewriter()
 
-    _, kwargs = ctor_spy.call_args
-    assert kwargs["model"] == "custom-tiny-model"
+    factory_spy.assert_called_once_with()
 
 
-def test_rewriter_defaults_to_qwen_when_env_var_unset(monkeypatch, mock_query_rewriter_llm):
-    import src.rag.query_rewriter as query_rewriter_module
+def test_rewriter_stores_provider_factory_result_as_llm(mock_query_rewriter_llm):
+    rewriter = QueryRewriter()
 
-    ctor_spy = MagicMock(return_value=mock_query_rewriter_llm)
-    monkeypatch.setattr(query_rewriter_module, "Ollama", ctor_spy)
-    monkeypatch.delenv("QUERY_REWRITE_MODEL", raising=False)
-
-    QueryRewriter()
-
-    _, kwargs = ctor_spy.call_args
-    assert kwargs["model"] == "qwen2.5:0.5b"
+    assert rewriter.llm is mock_query_rewriter_llm

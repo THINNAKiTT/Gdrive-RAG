@@ -150,18 +150,21 @@ def mock_fitz_document(monkeypatch):
     fake_module.set_pages = _set_pages
     return fake_module
 
-
 # ---------------------------------------------------------------------------
-# Ollama / LlamaIndex Settings mocks
+# Provider mocks (src.rag.providers factory functions)
 #
 # llama_index.core.Settings.llm / .embed_model setters assert
 # isinstance(value, LLM) / isinstance(value, BaseEmbedding). A bare
-# MagicMock() fails that check, so the constructor mock returns a real
-# MockLLM / MockEmbedding instance (llama_index's own test doubles,
-# which ARE real subclasses) instead of a MagicMock instance. The
-# constructor call itself (Ollama(...), OllamaEmbedding(...)) is still
-# a MagicMock, so call_args/call_count assertions on *that* still work
-# -- only the returned object is swapped for something Settings accepts.
+# MagicMock() fails that check, so these fixtures patch the *provider
+# factory functions* (get_llm_provider, get_embedding_provider, etc.)
+# to return a real MockLLM / MockEmbedding instance (llama_index's own
+# test doubles, which ARE real subclasses) instead of a MagicMock.
+#
+# orchestrator.py and query_rewriter.py no longer import Ollama/
+# OpenAI/etc directly -- they call src.rag.providers.get_llm_provider()
+# and friends, which is now the single seam every test patches,
+# regardless of which cloud/local provider env vars would otherwise
+# select.
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
@@ -169,8 +172,8 @@ def mock_ollama_llm(monkeypatch):
     from llama_index.core.llms import MockLLM
 
     real_llm = MockLLM()
-    ollama_ctor = MagicMock(name="Ollama", return_value=real_llm)
-    monkeypatch.setattr("src.rag.orchestrator.Ollama", ollama_ctor)
+    ctor = MagicMock(name="get_llm_provider", return_value=real_llm)
+    monkeypatch.setattr("src.rag.orchestrator.get_llm_provider", ctor)
     return real_llm
 
 
@@ -179,8 +182,8 @@ def mock_ollama_embedding(monkeypatch):
     from llama_index.core.embeddings import MockEmbedding
 
     real_embed = MockEmbedding(embed_dim=8)
-    ollama_embed_ctor = MagicMock(name="OllamaEmbedding", return_value=real_embed)
-    monkeypatch.setattr("src.rag.orchestrator.OllamaEmbedding", ollama_embed_ctor)
+    ctor = MagicMock(name="get_embedding_provider", return_value=real_embed)
+    monkeypatch.setattr("src.rag.orchestrator.get_embedding_provider", ctor)
     return real_embed
 
 
@@ -196,33 +199,32 @@ def mock_vector_db_manager(monkeypatch):
     )
     return fake_manager
 
+
 @pytest.fixture
 def mock_reranker(monkeypatch):
     """
-    Patches src.rag.orchestrator.Reranker so RAGOrchestrator never
-    constructs a real one -- Reranker.__init__ loads a real
-    CrossEncoder model, which downloads several GB from HuggingFace
-    Hub on first use and hangs test runs that have no network access
-    or no cached model. Any test that touches RAGOrchestrator() must
+    Patches src.rag.orchestrator.get_reranker_provider so
+    RAGOrchestrator never constructs a real reranker -- the local
+    provider's CrossEncoder.__init__ downloads several GB from
+    HuggingFace Hub on first use and hangs test runs that have no
+    network access or no cached model; the cohere provider would make
+    a real network call. Any test that touches RAGOrchestrator() must
     use this fixture.
     """
     fake_reranker = MagicMock(name="Reranker")
-    monkeypatch.setattr(
-        "src.rag.orchestrator.Reranker",
-        MagicMock(return_value=fake_reranker),
-    )
+    ctor = MagicMock(name="get_reranker_provider", return_value=fake_reranker)
+    monkeypatch.setattr("src.rag.orchestrator.get_reranker_provider", ctor)
     return fake_reranker
+
 
 @pytest.fixture
 def mock_query_rewriter_llm(monkeypatch):
     """
-    Patches the Ollama class used by QueryRewriter specifically (a
-    separate import from src.rag.orchestrator's Ollama import) with a
-    MagicMock whose .complete() method tests can control via
+    Patches src.rag.query_rewriter.get_query_rewrite_llm_provider with
+    a MagicMock whose .complete() method tests can control via
     return_value/side_effect.
     """
-    fake_llm_instance = MagicMock(name="QueryRewriterOllamaInstance")
-    ollama_ctor = MagicMock(name="QueryRewriterOllamaCtor", return_value=fake_llm_instance)
-    monkeypatch.setattr("src.rag.query_rewriter.Ollama", ollama_ctor)
+    fake_llm_instance = MagicMock(name="QueryRewriterLLMInstance")
+    ctor = MagicMock(name="get_query_rewrite_llm_provider", return_value=fake_llm_instance)
+    monkeypatch.setattr("src.rag.query_rewriter.get_query_rewrite_llm_provider", ctor)
     return fake_llm_instance
-
