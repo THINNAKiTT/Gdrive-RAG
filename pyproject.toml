@@ -10,18 +10,30 @@ dependencies = [
     "google-auth-httplib2>=0.4.0",
     "google-auth-oauthlib>=1.4.0",
     "llama-index>=0.14.23",
-    "llama-index-embeddings-ollama>=0.9.0",
-    "llama-index-llms-ollama>=0.10.1",
     "llama-index-vector-stores-chroma>=0.5.5",
-    "openai>=2.45.0",
     "pymupdf>=1.28.0",
     "pytesseract>=0.3.13",
     "pytest>=9.1.1",
     "python-dotenv>=1.2.2",
-    "sentence-transformers>=5.6.1",
     "streamlit>=1.59.2",
-    "torchvision>=0.28.0",
 ]
+
+[project.optional-dependencies]
+# Local model providers (each independent -- install only what you use)
+ollama = ["llama-index-llms-ollama>=0.10.1", "llama-index-embeddings-ollama>=0.9.0"]
+reranker-local = ["sentence-transformers>=5.6.1", "torchvision>=0.28.0"]
+
+# Cloud model providers (each independent -- install only what you use)
+openai = ["openai>=2.45.0", "llama-index-llms-openai>=0.5.0", "llama-index-embeddings-openai>=0.5.0"]
+gemini = ["llama-index-llms-google-genai>=0.1.0", "llama-index-embeddings-google-genai>=0.5.0"]
+claude = ["llama-index-llms-anthropic>=0.6.0"]
+voyage = ["llama-index-embeddings-voyageai>=0.3.0"]
+cohere = ["llama-index-postprocessor-cohere-rerank>=0.5.0"]
+
+# Convenience bundles
+local = ["drive-rag-chatbot[ollama,reranker-local]"]
+cloud = ["drive-rag-chatbot[openai,gemini,claude,voyage,cohere]"]
+all = ["drive-rag-chatbot[local,cloud]"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

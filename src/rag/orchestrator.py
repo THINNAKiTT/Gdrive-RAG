@@ -3,44 +3,20 @@ from dotenv import load_dotenv
 
 from llama_index.core import PromptTemplate, Settings
 
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
-
-from src.rag.reranker import Reranker
 from src.storage.vector_db import VectorDBManager
 from src.rag.prompt_templates import STRICT_RAG_PROMPT
+from src.rag.providers import get_llm_provider, get_embedding_provider, get_reranker_provider
 
 load_dotenv()
 
 class RAGOrchestrator:
     def __init__(self):
-
-        # For Ollama
-        embed_model=os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
-        ollama_model=os.getenv("OLLAMA_MODEL", "llama3")
-        ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-
-        Settings.embed_model = OllamaEmbedding(
-            model_name=embed_model,
-            base_url=ollama_url,
-            request_timeout=60.0
-        )
-        Settings.llm = Ollama(
-            model=ollama_model, 
-            base_url=ollama_url,
-            temperature=0.0,
-            request_timeout=120.0
-        )
-
-        #======   If you want to use OPENAI   ======
-        # openai_key = os.getenv("OPENAI_API_KEY")
-        # if not openai_key:
-        #     print("OPENAI_API_KEY not found")
-        #     return
+        Settings.embed_model = get_embedding_provider()
+        Settings.llm = get_llm_provider()
 
         self.db_manager = VectorDBManager()
         self.index = self.db_manager.load_index()
-        self.reranker = Reranker(top_n=4)
+        self.reranker = get_reranker_provider(top_n=4)
 
     def get_query_engine(self):
         text_qa_template = PromptTemplate(STRICT_RAG_PROMPT)

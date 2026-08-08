@@ -1,9 +1,14 @@
 """
 Unit tests for src/rag/orchestrator.py (RAGOrchestrator)
 
-Ollama LLM/embedding classes, VectorDBManager, and Reranker are all
-mocked so these tests never require a running Ollama server, a real
-ChromaDB, or downloading the (multi-GB) cross-encoder reranker model.
+RAGOrchestrator now delegates all provider selection to
+src.rag.providers (get_llm_provider, get_embedding_provider,
+get_reranker_provider) -- these tests patch that single seam rather
+than any specific provider's SDK class, so they pass regardless of
+what LLM_PROVIDER/EMBEDDING_PROVIDER/RERANKER_PROVIDER happen to be
+set to in the environment. Provider-specific behavior (e.g. "does
+get_llm_provider('openai') set temperature=0.0") belongs in
+test_providers.py, not here.
 """
 import pytest
 from llama_index.core import Settings
@@ -12,50 +17,40 @@ from src.rag.orchestrator import RAGOrchestrator
 
 pytestmark = pytest.mark.unit
 
-
 @pytest.fixture
 def orchestrator(mock_ollama_llm, mock_ollama_embedding, mock_vector_db_manager, mock_reranker):
     return RAGOrchestrator()
 
 
-def test_orchestrator_configures_ollama_embedding_with_env_defaults(
+def test_orchestrator_configures_embed_model_via_provider_factory(
     orchestrator, mock_ollama_embedding
 ):
     assert Settings.embed_model is mock_ollama_embedding
 
 
-def test_orchestrator_configures_ollama_llm_with_env_defaults(
+def test_orchestrator_configures_llm_via_provider_factory(
     orchestrator, mock_ollama_llm
 ):
     assert Settings.llm is mock_ollama_llm
-
-
-def test_orchestrator_uses_temperature_zero_for_determinism(
-    monkeypatch, mock_vector_db_manager, mock_reranker
-):
-    from unittest.mock import MagicMock
-    from llama_index.core.llms import MockLLM
-    from llama_index.core.embeddings import MockEmbedding
-
-    ollama_ctor = MagicMock(return_value=MockLLM())
-    monkeypatch.setattr("src.rag.orchestrator.Ollama", ollama_ctor)
-    monkeypatch.setattr(
-        "src.rag.orchestrator.OllamaEmbedding",
-        MagicMock(return_value=MockEmbedding(embed_dim=8)),
-    )
-
-    RAGOrchestrator()
-
-    _, kwargs = ollama_ctor.call_args
-    assert kwargs["temperature"] == 0.0
 
 
 def test_orchestrator_loads_index_via_db_manager(orchestrator, mock_vector_db_manager):
     assert orchestrator.index is mock_vector_db_manager.load_index.return_value
 
 
-def test_orchestrator_creates_reranker_with_top_n_four(orchestrator, mock_reranker):
-    assert orchestrator.reranker is mock_reranker
+def test_orchestrator_creates_reranker_via_provider_factory_with_top_n_four(
+    monkeypatch, mock_ollama_llm, mock_ollama_embedding, mock_vector_db_manager
+):
+    from unittest.mock import MagicMock
+
+    fake_reranker = MagicMock(name="Reranker")
+    reranker_ctor = MagicMock(name="get_reranker_provider", return_value=fake_reranker)
+    monkeypatch.setattr("src.rag.orchestrator.get_reranker_provider", reranker_ctor)
+
+    orchestrator = RAGOrchestrator()
+
+    reranker_ctor.assert_called_once_with(top_n=4)
+    assert orchestrator.reranker is fake_reranker
 
 
 def test_get_query_engine_uses_strict_rag_prompt(orchestrator):
