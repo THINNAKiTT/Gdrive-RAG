@@ -92,6 +92,7 @@ def get_embedding_provider(provider: Optional[str] = None):
         return OpenAIEmbedding(
             model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
             api_key=os.getenv("OPENAI_API_KEY"),
+            embedding_config={"output_dimensionality": 768},
         )
 
     elif provider == "gemini":
@@ -100,8 +101,9 @@ def get_embedding_provider(provider: Optional[str] = None):
         except ImportError:
             raise _missing_dependency("gemini", "gemini", "llama-index-embeddings-google-genai")
         return GoogleGenAIEmbedding(
-            model_name=os.getenv("GEMINI_EMBEDDING_MODEL", "text-embedding-004"),
+            model_name=os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2"),
             api_key=os.getenv("GEMINI_API_KEY"),
+            embedding_config={"output_dimensionality": 768},
         )
 
     elif provider == "voyage":
@@ -112,6 +114,7 @@ def get_embedding_provider(provider: Optional[str] = None):
         return VoyageEmbedding(
             model_name=os.getenv("VOYAGE_EMBEDDING_MODEL", "voyage-3"),
             voyage_api_key=os.getenv("VOYAGE_API_KEY"),
+            embedding_config={"output_dimensionality": 768},
         )
 
     else:

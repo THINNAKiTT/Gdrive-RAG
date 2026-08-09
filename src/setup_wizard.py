@@ -5,6 +5,7 @@ import sys
 import tomllib
 from pathlib import Path
 
+from questionary import Choice
 import questionary
 from dotenv import dotenv_values
 
@@ -65,6 +66,13 @@ def _write_provider_choices(choices: dict):
     ENV_PATH.write_text("\n".join(new_lines) + "\n")
     print(f"Updated {ENV_PATH}")
 
+def _format_provider_label(role: str, provider: str) -> str:
+    if provider != "local":
+        return provider
+    if role == "reranker":
+        return "local(bge-reranker-v2-m3)"
+    return "local (Ollama)"
+
 def _extras_for_choices(extras_map: dict, choices: dict) -> list:
     extras = set()
     for role, env_var in ROLE_ENV_VARS.items():
@@ -95,8 +103,8 @@ def run_interactive():
     current_values = _load_env_values()
 
     print("Drive-RAG-Chatbot Provider Setup\n")
-    print("Choose a provider for each component. 'local' uses Ollama")
-    print("(or a local model) and needs no API key. Cloud providers")
+    print("Choose a provider for each component. 'local' uses a local provider")
+    print("and needs no API key. Cloud providers")
     print("need the matching API key set in .env afterward.\n")
 
     choices = {}
@@ -108,11 +116,18 @@ def run_interactive():
             if current in available_providers
             else 0
         )
+
+        provider_choices = [
+            Choice(_format_provider_label(role, provider), provider)
+            for provider in available_providers
+        ]
+        default_choice = provider_choices[default_index]
+
         selected = questionary.select(
             ROLE_LABELS[role],
-            choices=available_providers,
-            default=available_providers[default_index],
-            pointer="●",
+            choices=provider_choices,
+            default=default_choice,
+            pointer=">",
         ).ask()
 
         if selected is None: 
