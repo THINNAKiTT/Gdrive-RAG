@@ -65,15 +65,16 @@ def export_csv(output_path: str, db_path: str):
 
     print(f"Exported {len(metadatas)} chunk(s) to {output_path}")
 
-def launch_web(port: int):
+def launch_web(port: int, address: str = "localhost"):
     this_file = os.path.abspath(__file__)
     cmd = [
         "streamlit", "run", this_file,
         "--server.port", str(port),
+        "--server.address", address,
         "--",
         "--render-web-ui",
     ]
-    print(f"Launching viewer at http://localhost:{port}")
+    print(f"Launching viewer at http://{address}:{port}")
     subprocess.run(cmd)
 
 def _render_web_ui():
@@ -121,7 +122,7 @@ def _render_web_ui():
                 filtered = filtered[filtered["text_preview"].str.contains(search_text, case=False, na=False)]
 
             st.caption(f"Showing {len(filtered)} of {len(df)} chunk(s)")
-            st.dataframe(filtered, use_container_width=True, height=600)
+            st.dataframe(filtered, width='stretch', height=600)
 
         with tab_graph:
             st.caption(
@@ -161,13 +162,18 @@ def _render_web_ui():
                     title=f"t-SNE projection of {len(plot_df)} chunks",
                 )
                 fig.update_layout(height=700)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--export-csv", metavar="PATH", help="Export the collection to a CSV file.")
     parser.add_argument("--web", action="store_true", help="Launch the interactive web viewer.")
     parser.add_argument("--port", type=int, default=8502, help="Port for --web (default: 8502).")
+    parser.add_argument(
+        "--address", 
+        default=os.getenv("STREAMLIT_SERVER_ADDRESS", "localhost"), 
+        help="Bind address for --web (default: localhost; use 0.0.0.0 in containers"
+    )
     parser.add_argument("--db-path", default=os.getenv("CHROMA_DB_PATH", "./chroma_db"))
     parser.add_argument("--render-web-ui", action="store_true", help=argparse.SUPPRESS,)
 
@@ -176,7 +182,7 @@ def main():
     if args.render_web_ui:
         _render_web_ui()
     elif args.web:
-        launch_web(args.port)
+        launch_web(args.port, args.address)
     elif args.export_csv:
         export_csv(args.export_csv, args.db_path)
     else:
