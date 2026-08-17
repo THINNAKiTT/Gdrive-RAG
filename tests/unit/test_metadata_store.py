@@ -52,10 +52,10 @@ def test_new_file_is_ingested_and_indexed(mock_fitz_document):
 
 def test_new_file_gets_modified_time_stamped_on_insert(mock_fitz_document):
     """
-    Regression test: index_document() (used for the *initial* bulk
-    ingest) never stamps modified_time, so freshly-synced docs must at
-    least get it stamped here, or every subsequent sync will treat
-    them as "new" forever.
+    Regression test: VectorDBManager/index.insert() never stamps
+    modified_time itself (see test_vector_db.py), so freshly-synced
+    docs must at least get it stamped here, or every subsequent sync
+    will treat them as "new" forever.
     """
     mock_fitz_document.set_pages(["Content."])
     index = MagicMock()

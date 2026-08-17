@@ -11,8 +11,10 @@ class SyncLock:
             f.write(str(os.getpid()))
 
     def refresh(self):
-        if os.path.exists(self.lock_path):
+        try:
             os.utime(self.lock_path, None)
+        except FileNotFoundError:
+            pass
 
     def release(self):
         try:
@@ -21,9 +23,16 @@ class SyncLock:
             pass
 
     def is_locked(self) -> bool:
-        if not os.path.exists(self.lock_path):
+        # Check existence and mtime together (not exists() then
+        # getmtime() as two separate syscalls) -- another thread/
+        # process can remove the lock file in between those two
+        # calls (e.g. the daemon finishing sync while a query is
+        # calling wait_until_free()), which would otherwise raise
+        # FileNotFoundError out of a plain getmtime() call here.
+        try:
+            age = time.time() - os.path.getmtime(self.lock_path)
+        except FileNotFoundError:
             return False
-        age = time.time() - os.path.getmtime(self.lock_path)
         if age > self.stale_after_seconds:
             # Stale lock (daemon likely crashed mid-sync) -- don't let
             # it block queries indefinitely.

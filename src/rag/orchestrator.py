@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 
 from llama_index.core import PromptTemplate, Settings
+from llama_index.core.node_parser import SentenceSplitter
 
 from src.storage.vector_db import VectorDBManager
 from src.rag.prompt_templates import STRICT_RAG_PROMPT
@@ -13,6 +14,7 @@ class RAGOrchestrator:
     def __init__(self):
         Settings.embed_model = get_embedding_provider()
         Settings.llm = get_llm_provider()
+        Settings.node_parser = SentenceSplitter(chunk_size=512, chunk_overlap=50)
 
         self.db_manager = VectorDBManager()
         self.index = self.db_manager.load_index()

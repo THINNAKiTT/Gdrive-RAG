@@ -7,7 +7,7 @@ from src.rag.prompt_templates import REWRITE_PROMPT_TEMPLATE
 
 load_dotenv()
 
-logger = get_logger("Reranker")
+logger = get_logger("QueryRewriter")
 
 class QueryRewriter:
     def __init__(self, max_turns: int = 6):

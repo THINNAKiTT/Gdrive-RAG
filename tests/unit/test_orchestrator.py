@@ -38,6 +38,14 @@ def test_orchestrator_loads_index_via_db_manager(orchestrator, mock_vector_db_ma
     assert orchestrator.index is mock_vector_db_manager.load_index.return_value
 
 
+def test_orchestrator_configures_node_parser_globally(orchestrator):
+    from llama_index.core.node_parser import SentenceSplitter
+
+    assert isinstance(Settings.node_parser, SentenceSplitter)
+    assert Settings.node_parser.chunk_size == 512
+    assert Settings.node_parser.chunk_overlap == 50
+
+
 def test_orchestrator_creates_reranker_via_provider_factory_with_top_n_four(
     monkeypatch, mock_ollama_llm, mock_ollama_embedding, mock_vector_db_manager
 ):
