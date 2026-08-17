@@ -190,7 +190,7 @@ def test_get_embedding_provider_gemini_uses_env_defaults(monkeypatch):
     get_embedding_provider("gemini")
 
     _, kwargs = fake_embed_cls.call_args
-    assert kwargs["model_name"] == "text-embedding-004"
+    assert kwargs["model_name"] == "gemini-embedding-2"
 
 
 def test_get_embedding_provider_voyage_uses_env_defaults(monkeypatch):

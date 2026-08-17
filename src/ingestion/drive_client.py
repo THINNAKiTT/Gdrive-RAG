@@ -12,7 +12,7 @@ logger = get_logger("GDrive-RAG")
 
 class GoogleDriveClient:
     def __init__(self):
-        self.creds_path = os.getenv("GCP_CREDENTIALS_PATH", "config/secure_gcp_credents.json")
+        self.creds_path = os.getenv("GCP_CREDENTIALS_PATH", "config/secure_gcp_credentials.json")
         self.scopes = ['https://www.googleapis.com/auth/drive.readonly']
 
         self.credentials = service_account.Credentials.from_service_account_file(
