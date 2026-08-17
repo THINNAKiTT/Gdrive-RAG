@@ -23,12 +23,6 @@ class SyncLock:
             pass
 
     def is_locked(self) -> bool:
-        # Check existence and mtime together (not exists() then
-        # getmtime() as two separate syscalls) -- another thread/
-        # process can remove the lock file in between those two
-        # calls (e.g. the daemon finishing sync while a query is
-        # calling wait_until_free()), which would otherwise raise
-        # FileNotFoundError out of a plain getmtime() call here.
         try:
             age = time.time() - os.path.getmtime(self.lock_path)
         except FileNotFoundError:
