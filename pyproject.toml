@@ -1,5 +1,5 @@
 [project]
-name = "drive-rag-chatbot"
+name = "gdrive-rag"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -42,9 +42,9 @@ voyage = ["llama-index-embeddings-voyageai>=0.3.0"]
 cohere = ["llama-index-postprocessor-cohere-rerank>=0.5.0"]
 
 # Convenience bundles
-local = ["drive-rag-chatbot[ollama,reranker-local]"]
-cloud = ["drive-rag-chatbot[openai,gemini,claude,voyage,cohere]"]
-all = ["drive-rag-chatbot[local,cloud]"]
+local = ["gdrive-rag[ollama,reranker-local]"]
+cloud = ["gdrive-rag[openai,gemini,claude,voyage,cohere]"]
+all = ["gdrive-rag[local,cloud]"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

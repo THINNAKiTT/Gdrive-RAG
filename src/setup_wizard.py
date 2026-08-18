@@ -102,7 +102,7 @@ def run_interactive():
     extras_map = _load_extras_map()
     current_values = _load_env_values()
 
-    print("Drive-RAG-Chatbot Provider Setup\n")
+    print("GDrive-RAG Provider Setup\n")
     print("Choose a provider for each component. 'local' uses a local provider")
     print("and needs no API key. Cloud providers")
     print("need the matching API key set in .env afterward.\n")

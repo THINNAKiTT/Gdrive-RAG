@@ -744,7 +744,7 @@ wheels = [
 ]
 
 [[package]]
-name = "drive-rag-chatbot"
+name = "gdrive-rag"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
@@ -826,9 +826,9 @@ voyage = [
 [package.metadata]
 requires-dist = [
     { name = "chromadb", specifier = ">=1.5.9" },
-    { name = "drive-rag-chatbot", extras = ["local", "cloud"], marker = "extra == 'all'" },
-    { name = "drive-rag-chatbot", extras = ["ollama", "reranker-local"], marker = "extra == 'local'" },
-    { name = "drive-rag-chatbot", extras = ["openai", "gemini", "claude", "voyage", "cohere"], marker = "extra == 'cloud'" },
+    { name = "gdrive-rag", extras = ["local", "cloud"], marker = "extra == 'all'" },
+    { name = "gdrive-rag", extras = ["ollama", "reranker-local"], marker = "extra == 'local'" },
+    { name = "gdrive-rag", extras = ["openai", "gemini", "claude", "voyage", "cohere"], marker = "extra == 'cloud'" },
     { name = "google-api-python-client", specifier = ">=2.198.0" },
     { name = "google-auth-httplib2", specifier = ">=0.4.0" },
     { name = "google-auth-oauthlib", specifier = ">=1.4.0" },
