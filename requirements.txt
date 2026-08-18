@@ -310,7 +310,7 @@ chromadb==1.5.9 \
     --hash=sha256:9192d111bd662241625867962333d99369a00769a50f8b2f58cb388731274d7e \
     --hash=sha256:cc09b3df76e5a5cb386aed2715a2eea152e3949f9e1ba93c7119505377749929
     # via
-    #   drive-rag-chatbot
+    #   gdrive-rag
     #   llama-index-vector-stores-chroma
 click==8.4.2 \
     --hash=sha256:9a6cea6e60b17ebe0a44c5cc636d94f09bd66142c1cd7d8b4cd731c4917a15f6 \
@@ -503,7 +503,7 @@ google-api-core==2.31.0 \
 google-api-python-client==2.198.0 \
     --hash=sha256:dfe3e16fb241af6e9c460a33f65085b3450e05cea09364f6b5d8997fb7e43e2a \
     --hash=sha256:fabac935474e817da5e662ff61bf7139439d6f92b32d332a7318a2d45931e03e
-    # via drive-rag-chatbot
+    # via gdrive-rag
 google-auth==2.56.0 \
     --hash=sha256:6e88c10217e07a92bfd01cac8ee99e32ccfb08414c3102e6c5b8d58f37a0d1e0 \
     --hash=sha256:f90fa030b569a92654b9d690665a073841df33d57487be53db583a9a0867a553
@@ -516,12 +516,12 @@ google-auth-httplib2==0.4.0 \
     --hash=sha256:8e55cfafa3358cba85f6cad4a886138e88e158d71e7e5c9ee5936a5c1507fb91 \
     --hash=sha256:d5b030a204b7a4b4d553ba9ca701b62481ee2b74419325580be70f7d85ffed35
     # via
-    #   drive-rag-chatbot
+    #   gdrive-rag
     #   google-api-python-client
 google-auth-oauthlib==1.4.0 \
     --hash=sha256:18b5e28880eb8eba9065c436becdc0ee8e4b59117a73a510679c82f70cd363d2 \
     --hash=sha256:251314f213a9ee46a5ae73988e84fd7cca8bb68e7ecf4bfd45940f9e7f51d070
-    # via drive-rag-chatbot
+    # via gdrive-rag
 googleapis-common-protos==1.75.0 \
     --hash=sha256:53a062ff3c32552fbd62c11fe23768b78e4ddf0494d5e5fd97d3f4689c75fbbd \
     --hash=sha256:961ed60399c457ceb0ee8f285a84c870aabc9c6a832b9d37bb281b5bebde43ed
@@ -787,7 +787,7 @@ kubernetes==36.0.3 \
 llama-index==0.14.23 \
     --hash=sha256:c205de2442a7186b8e05096f0771f96fa6bdc9603fcad2e07eab1bc96dcf086a \
     --hash=sha256:eac2049816a7410ff4568490cce4bdff99cda3ab99d59f52f6227dad22cda44b
-    # via drive-rag-chatbot
+    # via gdrive-rag
 llama-index-core==0.14.23 \
     --hash=sha256:6a54d267826732a8507f81df40785b107f7592af20f451a39a59005147caf84c \
     --hash=sha256:c4baf2f2ab4f84e95090fe7941e0c87d6c514304f7bd2a749b8fa22164c1822b
@@ -811,7 +811,7 @@ llama-index-llms-openai==0.7.9 \
 llama-index-vector-stores-chroma==0.5.5 \
     --hash=sha256:823865069bcea4d9de91510271ae03cd6ea8eb0106a5b5ea43ffcec03ec2a708 \
     --hash=sha256:a1ca18abe2b6b90cd0bdff89fef9fb389bbd3dfb6fc74844bf9100d48d258874
-    # via drive-rag-chatbot
+    # via gdrive-rag
 llama-index-workflows==2.22.2 \
     --hash=sha256:92367b8d6ce92256ff63010feed458804c0575d58c19c3a32445555d3ab052f4 \
     --hash=sha256:97b64bcf72e77e1a0380068cda09e5d0774b75abdb891096c433686c2f299e3e
@@ -1224,7 +1224,7 @@ pandas==3.0.3 \
     --hash=sha256:dd1a5d1def6a46002e964510bdc67c368aa0951df5d1d9f8365336f5a1f490cd \
     --hash=sha256:e3a2ec42c98ffa2565a67e08e218d06d72576d758d90facb7c00805194d8f360
     # via
-    #   drive-rag-chatbot
+    #   gdrive-rag
     #   streamlit
 pillow==12.3.0 \
     --hash=sha256:06ff022112bc9cbf83b60f8e028d94ad87b60621706487e65f673de61610ab59 \
@@ -1295,7 +1295,7 @@ platformdirs==4.10.0 \
 plotly==6.9.0 \
     --hash=sha256:36bebe2f1bb13884774fe61689c329071446f6ce4a8927fb1f0d6fb24f581236 \
     --hash=sha256:967ad33e8c704fed051800d11d985eb206a9c795c14206b30a6f463ed9c67d0d
-    # via drive-rag-chatbot
+    # via gdrive-rag
 pluggy==1.6.0 \
     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
     --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746
@@ -1614,7 +1614,7 @@ pymupdf==1.28.0 \
     --hash=sha256:caea2b3b67347fd79e5d15ed7929b0e886aac594ea228073b6d39de0078189da \
     --hash=sha256:e01e90fd86abfeb37ceb921eddb951f988a11d45ff6ce6b7664f2039849068ec \
     --hash=sha256:e53f3567403a92da15caa9e7ae0164327fff48817e9f40175367fb9de524258d
-    # via drive-rag-chatbot
+    # via gdrive-rag
 pyparsing==3.3.2 \
     --hash=sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d \
     --hash=sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc
@@ -1630,11 +1630,11 @@ pyproject-hooks==1.2.0 \
 pytesseract==0.3.13 \
     --hash=sha256:4bf5f880c99406f52a3cfc2633e42d9dc67615e69d8a509d74867d3baddb5db9 \
     --hash=sha256:7a99c6c2ac598360693d83a416e36e0b33a67638bb9d77fdcac094a3589d4b34
-    # via drive-rag-chatbot
+    # via gdrive-rag
 pytest==9.1.1 \
     --hash=sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313 \
     --hash=sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c
-    # via drive-rag-chatbot
+    # via gdrive-rag
 python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
     --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
@@ -1645,7 +1645,7 @@ python-dotenv==1.2.2 \
     --hash=sha256:1d8214789a24de455a8b8bd8ae6fe3c6b69a5e3d64aa8a8e5d68e694bbcb285a \
     --hash=sha256:2c371a91fbd7ba082c2c1dc1f8bf89ca22564a087c2c287cd9b662adde799cf3
     # via
-    #   drive-rag-chatbot
+    #   gdrive-rag
     #   pydantic-settings
     #   uvicorn
 python-multipart==0.0.32 \
@@ -1691,7 +1691,7 @@ pyyaml==6.0.3 \
 questionary==2.1.1 \
     --hash=sha256:3d7e980292bb0107abaa79c68dd3eee3c561b83a0f89ae482860b181c8bd412d \
     --hash=sha256:a51af13f345f1cdea62347589fbb6df3b290306ab8930713bfae4d475a7d4a59
-    # via drive-rag-chatbot
+    # via gdrive-rag
 referencing==0.37.0 \
     --hash=sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231 \
     --hash=sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8
@@ -1887,7 +1887,7 @@ scikit-learn==1.9.0 \
     --hash=sha256:d77f54c017633791bc0225a43e2f8d03745fdcfe4880268fcc4df15f505dec2e \
     --hash=sha256:da76d09304a4706db7cc1e3ebaa3b6b98a67365cc11d2996c4f1e58ba47df714 \
     --hash=sha256:ee1a8db2c18c08e34c7412d4b10be1cac214cd4ea7dc9715a6a327eb49a37c96
-    # via drive-rag-chatbot
+    # via gdrive-rag
 scipy==1.18.0 \
     --hash=sha256:09143f676d157d9f546d663504ef9c1becb819824f1afc018814176411942446 \
     --hash=sha256:0d13bca67c096d89fb95ced0d8921807300fce0275643aef9533cc63a0773468 \
@@ -1975,7 +1975,7 @@ starlette==1.3.1 \
 streamlit==1.59.2 \
     --hash=sha256:5014cb4f0064bd16c58fe334cb0d3c4b7e2be3d1ce4c02202c07114a33576dab \
     --hash=sha256:8fcb35df152868d33eec7ad2d89e276499a5351fb861eb1752b76476be7eb582
-    # via drive-rag-chatbot
+    # via gdrive-rag
 tenacity==9.1.4 \
     --hash=sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55 \
     --hash=sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a

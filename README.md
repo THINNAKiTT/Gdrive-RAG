@@ -171,7 +171,7 @@ uv run python chroma_viewer.py --web
 
 One image, three services, sharing `./chroma_db`, `./logs`, and a
 `huggingface_cache` volume (so the reranker model downloads once and
-persists across restarts).
+persists across restarts) with standalone ChromaDB.
 
 ```bash
 # .env must already be configured (run.py / setup_wizard.py on the host
@@ -182,11 +182,20 @@ docker-compose up
 ```
 
 - Chat app: http://localhost:8501
-- ChromaDB viewer: http://localhost:8502
+- Standalone chroma db server on port `8000`
 - Sync daemon runs headless (check `docker-compose logs -f sync_daemon`)
 
 The image is built with `--extra all` (every provider's SDK included), so
 you can switch providers via `.env` without rebuilding.
+
+### (Optional) Inspect the vector store
+```
+# CSV export
+uv run python chroma_viewer.py --export-csv export.csv
+
+# Interactive web viewer (table + t-SNE embedding graph), on a separate port
+uv run python chroma_viewer.py --web
+```
 
 ## Configuration reference
 

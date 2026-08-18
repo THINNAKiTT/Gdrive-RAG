@@ -13,7 +13,7 @@ from src.utils.resilience import with_resilience, CircuitOpenError
 
 # == Initialize == #
 st.set_page_config(
-    page_title="GDrive-RAG-Chatbot",
+    page_title="GDrive-RAG",
     layout="centered",
 )
 st.title("GDrive-RAG-Chat")
