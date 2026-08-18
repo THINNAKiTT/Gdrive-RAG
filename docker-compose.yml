@@ -1,45 +1,42 @@
 services:
+  chroma:
+    image: chromadb/chroma:latest
+    volumes:
+      - chroma_data:/chroma/chroma
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
   app:
     build: .
-    image: drive-rag-chatbot:latest
+    image: gdrive-rag:latest
     command: uv run streamlit run ui/app.py --server.address 0.0.0.0 --server.port 8501
     ports:
       - "8501:8501"
+    env_file:
+      - .env
     volumes:
-    - ./chroma_db:/app/chroma_db
-    - ./logs:/app/logs
-    - ./.env:/app/.env:ro
-    - ./config:/app/config:ro
-    - huggingface_cache:/root/.cache/huggingface
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - huggingface_cache:/root/.cache/huggingface
+    depends_on:
+      - chroma
     restart: unless-stopped
 
   sync_daemon:
     build: .
-    image: drive-rag-chatbot:latest
+    image: gdrive-rag:latest
     command: uv run python -m src.sync_daemon
+    env_file:
+      - .env
     volumes:
-      - ./chroma_db:/app/chroma_db
       - ./logs:/app/logs
-      - ./.env:/app/.env:ro
       - ./config:/app/config:ro
       - huggingface_cache:/root/.cache/huggingface
+    depends_on:
+      - chroma
     restart: unless-stopped
 
-  viewer:
-    build: .
-    image: drive-rag-chatbot:latest
-    command: uv run python chroma_viewer.py --web --port 8502 --address 0.0.0.0
-    ports:
-      - "8502:8502"
-    volumes:
-      - ./chroma_db:/app/chroma_db
-      - ./logs:/app/logs
-      - ./.env:/app/.env:ro
-      - ./config:/app/config:ro
-      - huggingface_cache:/root/.cache/huggingface
-    # viewer is opened on-demand for debugging, not something that
-    # needs to survive a crash and restart itself the way app/
-    # sync_daemon do.
-    restart: "no"
 volumes:
+  chroma_data:
   huggingface_cache:
